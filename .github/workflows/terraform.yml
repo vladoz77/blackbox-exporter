@@ -101,6 +101,7 @@ jobs:
           echo "Запускаем terraform destroy"
           cd terraform
           terraform destroy -auto-approve
+  
   ansible:
     name: Configure blackbox server
     needs: terraform
@@ -123,7 +124,7 @@ jobs:
           echo "Running Ansible Playbook"
           ansible-playbook -i inventory.ini \
           playbook.yaml \
-          - u ubuntu \
+          -u ubuntu \
           --private-key <(echo "${{ secrets.SSH_PRIV_KEY }}") \
           --ssh-extra-args "-o StrictHostKeyChecking=no"
 
