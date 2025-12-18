@@ -117,6 +117,12 @@ jobs:
           sudo apt update
           sudo apt install -y ansible sshpass
 
+      - name: Setup ssh config
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIV_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
       - name: Run Ansible Playbook
         run: |
           cd ansible
@@ -125,7 +131,6 @@ jobs:
           ansible-playbook -i inventory.ini \
           playbook.yaml \
           -u ubuntu \
-          --private-key <(echo "${{ secrets.SSH_PRIV_KEY }}") \
           --ssh-extra-args "-o StrictHostKeyChecking=no"
 
 
