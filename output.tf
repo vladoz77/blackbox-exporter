@@ -10,5 +10,5 @@ output "blackbox_instance_id" {
 
 output "dns_name" {
   description = "DNS name of the blackbox instance"
-  value = yandex_dns_recordset.instanse_dns.name
+  value       = yandex_dns_recordset.instanse_dns.name
 }

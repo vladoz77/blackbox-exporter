@@ -10,7 +10,7 @@ network = {
   cidr        = "192.168.10.0/24"
   name        = "blackbox-network"
   subnet_name = "blackbox-subnet"
-}                       
+}
 
 dns = {
   record_name = "blackbox.home-local.site."
