@@ -3,7 +3,7 @@ instance = {
   memory      = 4
   platform_id = "standard-v1"
   name        = "blackbox-vm"
-  image_id    = "fd81hgrcv6lsnkremf32"
+  image_id    = "fd8383qtki9fpldbhtmd"
 }
 
 network = {

@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_ACTION: ${{ github.event.inputs.terraform_action }}
-
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -101,12 +101,17 @@ jobs:
           echo "Запускаем terraform destroy"
           cd terraform
           terraform destroy -auto-approve
+
+      - name: Save TF_ACTION for Ansible job
+        id: save-action
+        run: |
+          echo "tf_action=$TF_ACTION" >> $GITHUB_OUTPUT
   
   ansible:
     name: Configure blackbox server
     needs: terraform
     runs-on: ubuntu-latest
-    if: success()
+    if:  ${{ github.event.inputs.terraform_action == 'apply' }}
 
     steps:
       - name: Checkout
@@ -126,7 +131,6 @@ jobs:
       - name: Run Ansible Playbook
         run: |
           cd ansible
-          ls -la
           echo "Running Ansible Playbook"
           ansible-playbook -i inventory.ini \
           playbook.yaml \
