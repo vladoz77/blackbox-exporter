@@ -32,13 +32,27 @@ jobs:
                exclude = ["registry.terraform.io/*/*"]
             }
           }
+      
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
 
       - name: Terraform Init with S3 backend
+        id: init
         run: |
           terraform init \
             -backend-config="access_key=${{ secrets.ACCESS_KEY }}" \
             -backend-config="secret_key=${{ secrets.SECRET_KEY }}" \
             -reconfigure
+
+      - name: Terraform plan
+        id: plan
+        run: |
+          terraform plan
+          
+         
+         
 
       
       
