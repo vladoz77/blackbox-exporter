@@ -116,12 +116,10 @@ jobs:
           sudo apt update
           sudo apt install -y ansible sshpass
 
-      - name: debug inventory
-        run: |
-          ls -la
-
       - name: Run Ansible Playbook
         run: |
+          cd ansible
+          echo "Running Ansible Playbook"
           ansible-playbook -i inventory.ini \
           playbook.yaml \
           - u ubuntu \
