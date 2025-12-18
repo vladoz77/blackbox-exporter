@@ -138,10 +138,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ansible-inventory
+          path: ansible
 
       - name: Run Ansible Playbook
         run: |
           cd ansible
+          cat inventory.ini
           echo "Running Ansible Playbook"
           ansible-playbook -i inventory.ini \
           playbook.yaml \
