@@ -64,18 +64,15 @@ jobs:
         run: |
               attempt=1
               max_attempts=3
-              
               echo "Запускаем terraform plan"
-              
               until terraform plan; do
                 if [ $attempt -eq $max_attempts ]; then
                   echo "Достигнут лимит попыток ($max_attempts)"
                   exit 1
                 fi
-                
                 echo "Попытка $attempt неудачна. Пробуем еще раз..."
                 attempt=$((attempt + 1))
-                sleep 30
+                sleep 5
               done
 
       - name: Terraform apply
@@ -86,7 +83,19 @@ jobs:
           TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
           TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
-        run: terraform apply -auto-approve
+        run: |
+              attempt=1
+              max_attempts=3
+              echo "Запускаем terraform apply"
+              until terraform apply -auto-approve; do
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "Достигнут лимит попыток ($max_attempts)"
+                  exit 1
+                fi
+                echo "Попытка $attempt неудачна. Пробуем еще раз..."
+                attempt=$((attempt + 1))
+                sleep 5
+              done
 
       - name: Terraform destroy
         if: env.TF_ACTION == 'destroy'
@@ -96,7 +105,19 @@ jobs:
           TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
           TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
-        run: terraform destroy -auto-approve
+        run: |
+              attempt=1
+              max_attempts=3
+              echo "Запускаем terraform apply"
+              until terraform apply -auto-approve; do
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "Достигнут лимит попыток ($max_attempts)"
+                  exit 1
+                fi
+                echo "Попытка $attempt неудачна. Пробуем еще раз..."
+                attempt=$((attempt + 1))
+                sleep 5
+              done
 
         
 
