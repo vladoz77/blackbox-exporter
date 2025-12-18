@@ -19,8 +19,19 @@ jobs:
         with:
           terraform_version: '1.9.8'
 
-      - name: Debug - List files
-        run: ls -la
+      - name: Config yandex provider
+        run: |
+          echo "Creating ~/.terraformrc for Yandex Cloud mirror"
+          cat > ~/.terraformrc <<EOF
+          provider_installation {
+            network_mirror {
+              url = "https://terraform-mirror.yandexcloud.net/"
+              include = ["registry.terraform.io/*/*"]
+            }
+            direct {
+               exclude = ["registry.terraform.io/*/*"]
+            }
+          }
 
       - name: Terraform Init with S3 backend
         run: |
