@@ -65,7 +65,7 @@ jobs:
       - name: Terraform plan
         id: plan
         env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.iam-token }}
+          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
           TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
           TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
@@ -77,7 +77,7 @@ jobs:
         if: env.TF_ACTION == 'apply'
         id: apply
         env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.iam-token }}
+          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
           TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
           TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
@@ -89,7 +89,7 @@ jobs:
         if: env.TF_ACTION == 'destroy'
         id: destroy
         env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.iam-token }}
+          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
           TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
           TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
