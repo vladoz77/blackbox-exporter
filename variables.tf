@@ -16,6 +16,12 @@ variable "folder_id" {
   sensitive   = true
 }
 
+variable "ssh_pub_key" {
+  description = "SSH public key for instance access"
+  type        = string
+  sensitive   = true
+}
+
 variable "instance" {
   description = "Instance configuration"
   type = object({
