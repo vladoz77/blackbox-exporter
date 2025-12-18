@@ -57,3 +57,13 @@ resource "yandex_compute_instance" "vm" {
     ssh-keys = "ubuntu:${var.ssh_pub_key}"
   }
 }
+
+resource "local_file" "inventory" {
+  content = templatefile("./inventory.tftpl",
+    {
+      blackbox = flatten(yandex_compute_instance.vm[*].network_interface.0.nat_ip_address),
+    }
+  )
+  filename   = "../ansible/inventory.ini"
+  depends_on = [yandex_compute_instance.vm]
+}

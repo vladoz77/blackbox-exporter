@@ -48,19 +48,21 @@ jobs:
         run: terraform fmt -check
         continue-on-error: true
 
-      - name: Terraform Init with S3 backend
-        id: init
-        run: |
-          terraform init \
-            -backend-config="access_key=${{ secrets.ACCESS_KEY }}" \
-            -backend-config="secret_key=${{ secrets.SECRET_KEY }}" \
-            -reconfigure
-
       - name: Generate IAM token
         id: get-iam-token
         uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
         with:
-          yc-sa-id: ${{ secrets.YC_SA_ID }}
+          yc-sa-id: ${{ secrets.YC_SA_ID }}  
+
+      - name: Terraform Init with S3 backend
+        id: init
+        run: |
+          echo "Запускаем terraform init"
+          cd terraform
+          terraform init \
+            -backend-config="access_key=${{ secrets.ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SECRET_KEY }}" \
+            -reconfigure
 
       - name: Terraform plan
         id: plan
@@ -71,6 +73,7 @@ jobs:
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
         run: |
           echo "Запускаем terraform plan"
+          cd terraform
           terraform plan
 
       - name: Terraform apply
@@ -83,6 +86,7 @@ jobs:
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
         run: |
           echo "Запускаем terraform apply"
+          cd terraform
           terraform apply -auto-approve
 
       - name: Terraform destroy
@@ -95,6 +99,7 @@ jobs:
           TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
         run: |
           echo "Запускаем terraform destroy"
+          cd terraform
           terraform destroy -auto-approve
 
         
