@@ -108,11 +108,7 @@ jobs:
           cd terraform
           terraform destroy -auto-approve
 
-      - name: Save TF_ACTION for Ansible job
-        id: save-action
-        run: |
-          echo "tf_action=$TF_ACTION" >> $GITHUB_OUTPUT
-  
+ 
   ansible:
     name: Configure blackbox server
     needs: terraform
