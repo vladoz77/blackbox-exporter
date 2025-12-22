@@ -1,0 +1,18 @@
+# Common instance config
+hostname: monitoring
+docker_network_name: "monitoring"
+packages:
+- jq
+- unzip
+- python3-pip
+
+# traefik config
+traefik_docker_dir: /home/{{ ansible_user }}/traefik
+traefik_container_name: traefik
+traefik_image: "traefik"
+traefik_version: "v3.5"
+acme_email: "vladoz77@yandex.ru"
+
+# VictoriaMetrics config
+victoriametrics_url: prometheus.home-local.site
+grafana_url: grafana.home-local.site

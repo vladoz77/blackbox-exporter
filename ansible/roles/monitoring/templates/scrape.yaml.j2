@@ -1,0 +1,34 @@
+global:
+  scrape_interval: {{ scrape_interval }}
+
+scrape_configs:
+{% if victoriametrics_enable -%}
+- job_name: {{ victoriametrics_container_name }}
+  static_configs:
+  - targets:
+    - {{ victoriametrics_container_name }}:{{ victoriametrics_port }}/{{ default_metrics_path}}
+{% endif -%}
+{% if vmalert_enable -%}
+- job_name: {{ vmalert_container_name }}
+  static_configs:
+  - targets:
+    - {{ vmalert_container_name }}:{{ vmalert_port }}/{{ default_metrics_path}}
+{% endif -%}
+{% if alertmanager_enable %}
+- job_name: {{ alertmanager_container_name }}
+  static_configs:
+  - targets:
+    - {{ alertmanager_container_name }}:{{ alertmanager_port }}/{{ default_metrics_path}}
+{% endif -%}
+{% if grafana_enable %}
+- job_name: {{ grafana_container_name }}
+  static_configs:
+  - targets:
+    - {{ grafana_container_name }}:{{ grafana_port }}/{{ default_metrics_path}}
+{% endif -%}
+{% if loki_enable %}
+- job_name: {{ loki_container_name }}
+  static_configs:
+  - targets:
+    - {{ loki_container_name }}:{{ loki_port }}/{{ default_metrics_path}}
+{% endif -%}

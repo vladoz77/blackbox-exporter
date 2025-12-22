@@ -30,40 +30,62 @@ provider "yandex" {
   zone      = "ru-central1-a"
 }
 
-resource "yandex_compute_instance" "vm" {
 
-  name        = var.instance.name
-  platform_id = var.instance.platform_id
+module "monitoring" {
+  source = "./modules/yc-instance"
 
-  resources {
-    cores  = var.instance.cores
-    memory = var.instance.memory
-  }
-
-  boot_disk {
-    initialize_params {
-      image_id = var.instance.image_id
-      size     = 20
+  count       = var.monitoring.count
+  name        = "monitoring-${count.index + 1}"
+  zone        = var.zone
+  platform_id = var.monitoring.platform_id
+  cores       = var.monitoring.cpu
+  memory      = var.monitoring.memory
+  ssh         = "${var.username}:${var.ssh_pub_key}"
+  boot_disk   = var.monitoring.boot_disk
+  network_interfaces = [
+    {
+      subnet_id      = yandex_vpc_subnet.subnet.id
+      nat            = true
+      security_group = []
     }
-  }
-
-  network_interface {
-    subnet_id          = yandex_vpc_subnet.subnet.id
-    nat                = true
-    security_group_ids = [yandex_vpc_security_group.ssh-access.id, yandex_vpc_security_group.blackbox-exporter-access.id]
-  }
-
-  metadata = {
-    ssh-keys = "ubuntu:${var.ssh_pub_key}"
-  }
+  ]
+  create_dns_record = true
+  dns_zone_id       = data.yandex_dns_zone.zone.id
+  dns_records       = var.monitoring.dns_records
 }
+
+module "blackbox" {
+  source = "./modules/yc-instance"
+
+  count       = var.blackbox.count
+  name        = "blackbox-${count.index + 1}"
+  zone        = var.zone
+  platform_id = var.blackbox.platform_id
+  cores       = var.blackbox.cpu
+  memory      = var.blackbox.memory
+  ssh         = "${var.username}:${var.ssh_pub_key}"
+  boot_disk   = var.blackbox.boot_disk
+  network_interfaces = [
+    {
+      subnet_id      = yandex_vpc_subnet.subnet.id
+      nat            = true
+      security_group = [yandex_vpc_security_group.ssh-access.id, yandex_vpc_security_group.blackbox-exporter-access.id]
+    }
+  ]
+  create_dns_record = true
+  dns_zone_id       = data.yandex_dns_zone.zone.id
+  dns_records       = var.blackbox.dns_records
+}
+
+
 
 resource "local_file" "inventory" {
   content = templatefile("./inventory.tftpl",
     {
-      blackbox = flatten(yandex_compute_instance.vm[*].network_interface.0.nat_ip_address),
+      monitoring = flatten(module.monitoring[*].public_ips),
+      blackbox   = flatten(module.blackbox[*].public_ips),
     }
   )
   filename   = "../ansible/inventory.ini"
-  depends_on = [yandex_compute_instance.vm]
+  depends_on = [module.monitoring, module.blackbox]
 }

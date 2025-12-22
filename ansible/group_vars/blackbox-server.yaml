@@ -1,4 +1,0 @@
-hostname: blackbox
-timezone: "Europe/Moscow"
-packages:
-- jq

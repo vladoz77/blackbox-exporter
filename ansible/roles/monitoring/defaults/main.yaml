@@ -1,0 +1,69 @@
+monitoring_enable: true
+
+# network name used in docker-compose (can be overridden)
+docker_network_name: "monitoring_network"
+
+# victoriametrics
+victoriametrics_enable: true
+victoriametrics_version: v1.118.0
+victoriametrics_container_name: victoriametrics
+victoriametrics_repo: victoriametrics/victoria-metrics
+victoriametrics_port: 8428
+victoriametrics_url: vm.home.local
+scrape_interval: 10s
+scrape_file: scrape.yaml
+scrape_folder: /etc/prometheus
+victoriametrics_data: vmstorage
+victoriametrics_image: "{{ victoriametrics_repo }}:{{ victoriametrics_version }}"
+
+# vmalert config
+vmalert_enable: true
+vmalert_container_name: vmalert
+vmalert_repo: victoriametrics/vmalert
+rules_folder_on_container: /etc/alerts
+rules_folder_on_host: "{{vmalert_dir}}/rules"
+vmalert_image: "{{ vmalert_repo }}:{{ vmalert_version }}"
+vmalert_version: v1.118.0
+vmalert_port: 8880
+
+# alertmanager config
+alertmanager_enable: true
+alertmanager_image: "{{ alertmanager_repo }}:{{ alertmanager_version }}"
+alertmanager_container_name: alertmanager
+alertmanager_repo:  prom/alertmanager
+alertmanager_version: v0.28.0
+alertmanager_port: 9093
+
+# grafana config
+grafana_enable: true
+grafana_container_name: grafana
+grafana_repo:  grafana/grafana
+grafana_version: 11.5.0
+grafana_port: 3000
+grafana_url: grafana.home.local
+grafana_data: grafana
+grafana_datasource_config: "{{ grafana_dir }}/datasources.yaml"
+grafana_dashboard_config: "{{ grafana_dir }}/dashboards.yaml"
+dashboards_folder: "{{ grafana_dir }}/dashboards"
+grafana_dashboard_folder: /var/lib/grafana/dashboard
+grafana_image: "{{ grafana_repo }}:{{ grafana_version }}"
+
+# karma config
+karma_enable: true
+karma_image: "{{ karma_repo }}:{{ karma_version }}"
+karma_container_name: karma
+karma_repo: ghcr.io/prymitive/karma
+karma_version: v0.121
+karma_port: 8080
+karma_url: karma.home.local
+
+# loki config
+loki_enable: true
+loki_data: loki_data
+loki_image: "{{ loki_repo }}:{{ loki_version }}"
+loki_container_name: loki
+loki_repo: grafana/loki
+loki_version: 3.5.1
+loki_port: 3100
+loki_url: loki.home.local
+

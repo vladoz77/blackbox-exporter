@@ -1,0 +1,18 @@
+# Default Dirs
+docker_compose_dir: "{{ work_dir }}/docker-compose.yaml"
+work_dir: "/home/{{ username }}/monitoring"
+victoriametrics_dir: "{{ work_dir }}/{{ victoriametrics_container_name }}"
+vmalert_dir: "{{ work_dir }}/{{ vmalert_container_name }}"
+alertmanager_dir: "{{ work_dir }}/{{ alertmanager_container_name }}"
+grafana_dir: "{{ work_dir }}/{{ grafana_container_name }}"
+karma_dir: "{{ work_dir }}/{{ karma_container_name }}"
+loki_dir: "{{ work_dir }}/{{ loki_container_name }}"
+alloy_dir: "{{ work_dir }}/{{ alloy_container_name }}"
+default_metrics_path: metrics
+
+
+
+
+
+
+

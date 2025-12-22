@@ -1,0 +1,60 @@
+- name: Install  collection 
+  ansible.builtin.command: "ansible-galaxy collection install -r {{ role_path }}/requirements.yaml --force"
+  become: false
+  run_once: true
+  delegate_to: localhost
+
+- name: Set username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(ansible_user) }}"
+
+- name: install {{ victoriametrics_container_name }}
+  ansible.builtin.include_tasks: victoriametrics.yaml
+  when: victoriametrics_enable == true
+
+- name: install {{ vmalert_container_name }}
+  ansible.builtin.include_tasks: "{{ vmalert_container_name }}.yaml"
+  when: vmalert_enable == true
+
+- name: install {{ alertmanager_container_name }}
+  ansible.builtin.include_tasks: "{{ alertmanager_container_name }}.yaml"
+  when: alertmanager_enable == true
+
+- name: install {{ grafana_container_name }}
+  ansible.builtin.include_tasks: "{{ grafana_container_name }}.yaml"
+  when: grafana_enable == true
+
+- name: install {{ loki_container_name }}
+  ansible.builtin.include_tasks: "{{ loki_container_name }}.yaml"
+  when: loki_enable == true
+
+# - name: install {{ alloy_container_name }}
+#   ansible.builtin.include_tasks: "{{ alloy_container_name }}.yaml"
+#   when: loki_enable == true
+
+- name: copy docker compose to {{ work_dir }}
+  ansible.builtin.template:
+    src: templates/docker-compose.yaml.j2
+    dest: "{{ docker_compose_dir }}"
+    group: "{{ username }}"
+    owner: "{{ username }}"
+
+- name: start monitoring project
+  community.docker.docker_compose_v2:
+    project_src: "{{ work_dir }}"
+    state: present
+    build: always
+    recreate: always
+    remove_orphans: true
+  when: monitoring_enable 
+    
+
+- name: delete monitoring project
+  community.docker.docker_compose_v2:
+    project_src: "{{ work_dir }}"
+    state: absent
+    build: always
+    recreate: always
+    remove_orphans: true
+  when: not monitoring_enable 
+    

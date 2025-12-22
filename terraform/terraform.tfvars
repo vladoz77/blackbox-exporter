@@ -1,19 +1,64 @@
-instance = {
-  cores       = 2
-  memory      = 4
+username = "ubuntu"
+zone = "ru-central1-a"
+
+monitoring = {
+  count         = 1
+  instance_name = "monitoring"
   platform_id = "standard-v1"
-  name        = "blackbox-vm"
-  image_id    = "fd8383qtki9fpldbhtmd"
+  cpu           = 2
+  core_fraction = 20
+  memory        = 4
+  boot_disk = {
+    type     = "network-hdd"
+    size     = 20
+    image_id = "fd81hgrcv6lsnkremf32"
+  }
+  tags        = []
+  environment = {}
+  dns_records = {
+    "prometheus" = {
+      name = "prometheus"
+      type = "A"
+      ttl  = 300
+    }
+    "grafana" = {
+      name = "grafana"
+      type = "A"
+      ttl  = 300
+    }
+    "alertmanager" = {
+      name = "alert"
+      type = "A"
+      ttl  = 300
+    }
+  }
+}
+
+blackbox = {
+  count         = 1
+  platform_id = "standard-v1"
+  instance_name = "blackbox"
+  cpu           = 2
+  core_fraction = 20
+  memory        = 2
+  boot_disk = {
+    type     = "network-hdd"
+    size     = 20
+    image_id = "fd81hgrcv6lsnkremf32"
+  }
+  tags        = []
+  environment = {}
+  dns_records = {
+    "blackbox-exporter" = {
+      name = "blackbox"
+      type = "A"
+      ttl  = 300
+    }
+  }
 }
 
 network = {
   cidr        = "192.168.10.0/24"
   name        = "blackbox-network"
   subnet_name = "blackbox-subnet"
-}
-
-dns = {
-  record_name = "blackbox.home-local.site."
-  ttl         = 300
-  type        = "A"
 }

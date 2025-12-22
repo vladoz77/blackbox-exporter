@@ -9,11 +9,3 @@ resource "yandex_vpc_subnet" "subnet" {
   v4_cidr_blocks = [var.network.cidr]
 }
 
-resource "yandex_dns_recordset" "instanse_dns" {
-  zone_id = data.yandex_dns_zone.zone.id
-  name    = var.dns.record_name
-  type    = var.dns.type
-  ttl     = var.dns.ttl
-
-  data = [yandex_compute_instance.vm.network_interface[0].nat_ip_address]
-}

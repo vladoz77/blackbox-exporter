@@ -1,0 +1,149 @@
+services:
+  {% if victoriametrics_enable -%}
+  {{ victoriametrics_container_name }}:
+    container_name: {{ victoriametrics_container_name }}
+    image: {{ victoriametrics_image }}
+    restart: unless-stopped
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.{{ victoriametrics_container_name }}.rule=Host(`{{ victoriametrics_url }}`)"
+    - "traefik.http.routers.{{ victoriametrics_container_name }}.entrypoints=websecure"
+    - "traefik.http.routers.{{ victoriametrics_container_name }}.tls.certresolver=le"
+    - "traefik.http.services.{{ victoriametrics_container_name }}.loadbalancer.server.port={{ victoriametrics_port}}"
+    - "traefik.http.routers.{{ victoriametrics_container_name }}.service={{ victoriametrics_container_name }}" 
+    command:
+    - "--storageDataPath=/storage"
+    - "--retentionPeriod=30d"
+    - "--promscrape.config={{ scrape_folder }}/scrape.yaml"
+    ports:
+    - "{{ victoriametrics_port }}:{{ victoriametrics_port }}"
+    volumes:
+    - "{{ victoriametrics_data }}:/storage"
+    - "{{ victoriametrics_dir }}/scrape.yaml:{{ scrape_folder }}/scrape.yaml"
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+
+  {% if vmalert_enable -%}
+  {{ vmalert_container_name }}:
+    container_name: {{ vmalert_container_name }}
+    image: {{ vmalert_image }}
+    restart: unless-stopped	
+    command:
+    - "--remoteRead.url=http://{{ victoriametrics_container_name }}:{{ victoriametrics_port }}"
+    - "--datasource.url=http://{{ victoriametrics_container_name }}:{{ victoriametrics_port }}"
+    - "--rule={{ rules_folder_on_container }}/*.yaml"
+    - "--notifier.url=http://{{alertmanager_container_name }}:{{ alertmanager_port }}"
+    - "--external.url=http://{{ grafana_container_name }}:{{ grafana_port }}"
+    ports:
+    - "{{ vmalert_port }}:{{ vmalert_port }}"
+    volumes:
+    - "{{ rules_folder_on_host }}:{{ rules_folder_on_container }}"
+    depends_on:
+    {% if victoriametrics_enable -%}
+    - {{ victoriametrics_container_name}}
+    {%- endif %}
+
+    {% if alertmanager_enable -%}
+    - {{ alertmanager_container_name }}
+    {%- endif %}
+
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+  
+  {% if alertmanager_enable -%}
+  alertmanager:
+    container_name: {{ alertmanager_container_name}}
+    image:  {{ alertmanager_image }}
+    restart: unless-stopped	
+    command:
+    - "--config.file=/etc/alertmanager.yaml"
+    ports:
+    - "{{ alertmanager_port }}:{{ alertmanager_port }}"
+    volumes:
+    - "{{ alertmanager_dir }}/alertmanager.yaml:/etc/alertmanager.yaml"
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+
+  {% if alertmanager_enable -%}
+  grafana:
+    container_name: {{ grafana_container_name}}
+    image: {{ grafana_image }}
+    restart: unless-stopped
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.{{ grafana_container_name }}.rule=Host(`{{ grafana_url }}`)"
+    - "traefik.http.routers.{{ grafana_container_name }}.entrypoints=websecure"
+    - "traefik.http.routers.{{ grafana_container_name }}.tls.certresolver=le"
+    - "traefik.http.services.{{ grafana_container_name }}.loadbalancer.server.port={{ grafana_port }}"
+    - "traefik.http.routers.{{ grafana_container_name }}.service={{ grafana_container_name }}" 
+    volumes:
+    - "{{ grafana_data }}:/var/lib/grafana"
+    - "{{ grafana_datasource_config }}:/etc/grafana/provisioning/datasources/datasources.yaml"
+    - "{{ grafana_dashboard_config }}:/etc/grafana/provisioning/dashboards/dashboards.yaml"
+    - "{{ dashboards_folder }}:{{ grafana_dashboard_folder }}"
+    ports:
+    - "{{ grafana_port }}:{{grafana_port}}"
+    depends_on:
+    {% if victoriametrics_enable -%}
+    - {{ victoriametrics_container_name}}
+    {%- endif %}
+    
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+
+  {% if karma_enable -%}
+  karma:
+    container_name: {{ karma_container_name }}
+    image: {{ karma_image }}
+    restart: unless-stopped
+    command:
+    - "--alertmanager.uri=http://{{ alertmanager_container_name }}:{{ alertmanager_port }}"
+    ports:
+    - "{{ karma_port }}:{{ karma_port }}"
+    depends_on:
+    {% if alertmanager_enable -%}
+    - {{ alertmanager_container_name}}
+    {%- endif %}
+
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+
+  {% if loki_enable -%}
+  loki:
+    container_name: {{ loki_container_name }}
+    image: "{{ loki_image }}"
+    restart: unless-stopped
+    command:
+    - "-config.file=/etc/loki/local-config.yaml"
+    ports:
+    - "{{ loki_port }}:{{ loki_port }}"
+    volumes:
+    - "{{ loki_data }}:/loki"
+    networks:
+    - {{ docker_network_name | default('monitoring_network') }}
+  {% endif %}
+
+
+
+
+volumes:
+  {% if victoriametrics_enable -%}
+  {{ victoriametrics_data }}:
+  {%- endif %}
+
+  {% if grafana_enable -%}
+  {{ grafana_data }}:
+  {%- endif %}
+
+  {% if loki_enable -%}
+  {{ loki_data }}:
+  {%- endif %}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

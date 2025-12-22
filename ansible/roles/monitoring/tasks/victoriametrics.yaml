@@ -1,0 +1,13 @@
+- name: create folder {{ victoriametrics_container_name }}
+  ansible.builtin.file:
+    path: "{{ victoriametrics_dir }}"
+    group: "{{ username }}"
+    owner: "{{ username }}"
+    state: directory
+
+- name: copy template scrape config to {{ victoriametrics_dir }}
+  ansible.builtin.template:
+    src: templates/scrape.yaml.j2
+    dest: "{{ victoriametrics_dir }}/scrape.yaml"
+    owner: "{{ username }}"
+    group: "{{ username }}"

@@ -1,0 +1,6 @@
+- name: create project {{ loki_container_name }}
+  ansible.builtin.file:
+    path: "{{ loki_dir }}"
+    group: "{{ username }}"
+    owner: "{{ username }}"
+    state: directory

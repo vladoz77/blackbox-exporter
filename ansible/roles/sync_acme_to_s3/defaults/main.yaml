@@ -1,0 +1,8 @@
+# Параметры по умолчанию (можно переопределять)
+traefik_docker_dir: "/opt/traefik"
+s3_bucket_name: "my-cert-bucket"
+s3_key: "{{ ansible_hostname }}/acme.json"
+aws_access_key: ""
+aws_secret_key: ""
+yandex_storage_endpoint: "https://storage.yandexcloud.net"
+yandex_region: "ru-central1"

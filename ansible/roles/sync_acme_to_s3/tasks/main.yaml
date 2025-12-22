@@ -1,0 +1,29 @@
+---
+- name: Ensure acme.json exists locally
+  ansible.builtin.stat:
+    path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
+  register: local_acme
+
+- name: Fail if acme.json not found locally
+  ansible.builtin.fail:
+    msg: "acme.json not found at {{ traefik_docker_dir }}/letsencrypt/acme.json — nothing to sync!"
+  when: not local_acme.stat.exists
+
+- name: Upload acme.json to S3 (always overwrite)
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket_name }}"
+    object: "{{ s3_key }}"
+    src: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
+    mode: put
+    access_key: "{{ aws_access_key }}"
+    secret_key: "{{ aws_secret_key }}"
+    endpoint_url: "{{ yandex_storage_endpoint }}"
+    region: "{{ yandex_region }}"
+    overwrite: always
+    encrypt: false
+    permission: []
+    
+
+- name: Success message
+  ansible.builtin.debug:
+    msg: "✅ acme.json successfully synced to s3://{{ s3_bucket_name }}/{{ s3_key }}"

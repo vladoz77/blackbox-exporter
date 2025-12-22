@@ -126,11 +126,16 @@ jobs:
         path: ansible
 
     - name: Run Ansible Playbook
+      env:
+        ASME_AWS_SECRET: ${{ secrets.ACME_S3_SECRET }}
+        ASME_AWS_ACCESS_KEY: ${{ secrets.ACME_AWS_ACCESS_KEY }}
       run: |
         cd ansible
         cat inventory.ini
         echo "Running Ansible Playbook"
         ansible-playbook -i inventory.ini \
         playbook.yaml \
+        -e aws_access_key=${{ secrets.ACME_AWS_ACCESS_KEY }} \
+        -e aws_secret_key=${{ secrets.ACME_AWS_SECRET }} \
         -u ubuntu \
         --ssh-extra-args "-o StrictHostKeyChecking=no"

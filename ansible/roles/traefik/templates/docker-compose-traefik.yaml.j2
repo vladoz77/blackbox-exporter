@@ -1,0 +1,43 @@
+services:
+  traefik:
+      image: {{ traefik_image }}:{{ traefik_version }}
+      container_name: {{ traefik_container_name }}
+      restart: always
+      command:
+        - "--api.insecure=true"
+        - "--providers.docker=true"
+        - "--entrypoints.web.address=:80"
+        - "--entryPoints.websecure.address=:443"
+        - "--entryPoints.websecure.http.tls=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--providers.docker.network={{ docker_network_name }}"
+        - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+        # Let's Encrypt configuration
+        - "--certificatesresolvers.le.acme.email={{ acme_email}}"
+        - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+        - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      labels:
+        # Enable self‑routing
+        - "traefik.enable=true"
+        # Dashboard router
+        {% if traefik_enable_dashboard -%}
+        - "traefik.http.routers.dashboard.rule=Host(`{{ traefik_dashboard_url }}`)"
+        - "traefik.http.routers.dashboard.entrypoints=websecure"
+        - "traefik.http.routers.dashboard.service=api@internal"
+        - "traefik.http.routers.dashboard.tls.certresolver=le"
+        {% endif -%}
+        - "traefik.http.middlewares.dashboard-auth.basicauth.users={{ traefik_dashboard_user }}:{{ traefik_dashboard_password_hash }}"
+        - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - "{{ traefik_letsencrypt_path }}:/letsencrypt"
+      networks:
+        - {{ docker_network_name }}
+
+
+networks:
+  {{ docker_network_name }}:
+    external: true

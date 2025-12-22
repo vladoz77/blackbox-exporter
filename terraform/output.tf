@@ -1,14 +1,28 @@
-output "blackbox_external_ip" {
-  description = "External IP address of the blackbox instance"
-  value       = yandex_compute_instance.vm.network_interface[0].nat_ip_address
+output "monitoring_public_ip" {
+  value = try(module.monitoring[*].public_ips, [])
+}
+output "blackbox_public_ip" {
+  value = try(module.blackbox[*].public_ips, [])
 }
 
-output "blackbox_instance_id" {
-  description = "ID of the blackbox instance"
-  value       = yandex_compute_instance.vm.id
+output "monitoring_fqdn" {
+  description = "Full FQDN of instances managed by monitoring module"
+  value = flatten([
+    for instance in module.monitoring : [
+      for name in instance.fqdn : [
+        "${name}.${data.yandex_dns_zone.zone.name}"
+      ]
+    ]
+  ])
 }
 
-output "dns_name" {
-  description = "DNS name of the blackbox instance"
-  value       = yandex_dns_recordset.instanse_dns.name
+output "blackbox_fqdn" {
+  description = "Full FQDN of instances managed by blackbox module"
+  value = flatten([
+    for instance in module.blackbox : [
+      for name in instance.fqdn : [
+        "${name}.${data.yandex_dns_zone.zone.name}"
+      ]
+    ]
+  ])
 }

@@ -1,0 +1,20 @@
+- name: create project {{ vmalert_container_name }}
+  ansible.builtin.file:
+    path: "{{ vmalert_dir }}"
+    group: "{{ username }}"
+    owner: "{{ username }}"
+    state: directory
+
+- name: create folder rules
+  ansible.builtin.file:
+    path: "{{ rules_folder_on_host }}"
+    group: "{{ username }}"
+    owner: "{{ username }}"
+    state: directory
+
+- name: Copy rules
+  ansible.builtin.copy:
+    src: files/rules/
+    dest: "{{ rules_folder_on_host }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"

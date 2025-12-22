@@ -16,29 +16,103 @@ variable "folder_id" {
   sensitive   = true
 }
 
+variable "zone" {
+  description = "Yandex Cloud zone"
+  type        = string
+  default     = "ru-central1-a" 
+}
+
 variable "ssh_pub_key" {
   description = "SSH public key for instance access"
   type        = string
   sensitive   = true
 }
 
-variable "instance" {
-  description = "Instance configuration"
+variable "username" {
+  description = "Username for SSH access"
+  type        = string
+}
+
+variable "monitoring" {
+  description = "monitoring vm config"
   type = object({
-    platform_id = string
-    name        = string
-    memory      = number
-    cores       = number
-    image_id    = string
+    count         = number
+    platform_id   = string
+    instance_name = string
+    cpu           = number
+    core_fraction = number
+    memory        = number
+    boot_disk = object({
+      type     = string
+      size     = number
+      image_id = string
+    })
+    tags        = optional(list(string))
+    environment = optional(map(string))
+    dns_records = map(object({
+      name = string
+      ttl  = number
+      type = string
+    }))
   })
   default = {
-    platform_id = "standard-v1"
-    name        = "blackbox-vm"
-    memory      = 4
-    cores       = 2
-    image_id    = "fd81hgrcv6lsnkremf32"
+    count         = 1
+    platform_id   = "standard-v1"
+    instance_name = "monitoring-server"
+    cpu           = 1
+    core_fraction = 20
+    memory        = 2
+    tags          = []
+    environment   = {}
+    boot_disk = {
+      type     = "network-hdd"
+      size     = 20
+      image_id = "fd81hgrcv6lsnkremf32"
+    }
+    dns_records = {}
   }
 }
+
+variable "blackbox" {
+  description = "blackbox vm config"
+  type = object({
+    count         = number
+    platform_id   = string
+    instance_name = string
+    cpu           = number
+    core_fraction = number
+    memory        = number
+    boot_disk = object({
+      type     = string
+      size     = number
+      image_id = string
+    })
+    tags        = optional(list(string))
+    environment = optional(map(string))
+    dns_records = map(object({
+      name = string
+      ttl  = number
+      type = string
+    }))
+  })
+  default = {
+    count         = 1
+    platform_id   = "standard-v1"
+    instance_name = "monitoring-server"
+    cpu           = 1
+    core_fraction = 20
+    memory        = 2
+    tags          = []
+    environment   = {}
+    boot_disk = {
+      type     = "network-hdd"
+      size     = 20
+      image_id = "fd81hgrcv6lsnkremf32"
+    }
+    dns_records = {}
+  }
+}
+
 
 variable "network" {
   description = "Network configuration"
@@ -52,13 +126,4 @@ variable "network" {
     cidr        = "10.0.0.0/16"
     subnet_name = "blackbox-subnet"
   }
-}
-
-variable "dns" {
-  description = "DNS configuration"
-  type = object({
-    record_name = string
-    ttl         = number
-    type        = string
-  })
 }

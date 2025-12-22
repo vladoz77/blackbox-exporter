@@ -1,0 +1,14 @@
+- name: check if {{ traefik_container_name }} already running
+  community.docker.docker_container_info:
+    name: "{{ traefik_container_name }}"
+  register: container_status
+  ignore_errors: true
+
+- ansible.builtin.debug:
+    msg: "{{ traefik_container_name }} exist and running"
+  when: container_status.exists and container_status.container.State.Running 
+
+- name: install {{ traefik_container_name }}
+  ansible.builtin.include_tasks:
+    install.yaml
+  when: not container_status.exists or not container_status.container.State.Running

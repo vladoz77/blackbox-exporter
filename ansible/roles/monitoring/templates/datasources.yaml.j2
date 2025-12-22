@@ -1,0 +1,22 @@
+apiVersion: 1
+
+datasources:
+{% if victoriametrics_enable %}
+- name: {{ victoriametrics_container_name }}
+  type: prometheus
+  access: proxy
+  url: http://{{ victoriametrics_container_name }}:{{ victoriametrics_port }}
+  isDefault: true
+{% endif -%}
+
+{% if loki_enable %}
+- name: Loki
+  type: loki
+  access: proxy
+  url: http://{{ loki_container_name }}:{{ loki_port }}
+  basicAuth: false
+  isDefault: false
+  editable: true
+  version: 1
+  orgId: 1
+{% endif -%}
