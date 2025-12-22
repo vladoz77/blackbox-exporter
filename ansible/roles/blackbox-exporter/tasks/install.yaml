@@ -12,7 +12,7 @@
     group: "{{ username }}"
     owner: "{{ username }}"
 
-- name: Copy template docker-compose to {{ blackbox_exporter_dir }}
+- name: Copy template docker-compose to {{ blackbox_exporter_docker_dir }}
   ansible.builtin.template:
     src: "templates/docker-compose.yaml.j2"
     dest: "{{ blackbox_exporter_docker_dir }}/docker-compose.yaml"

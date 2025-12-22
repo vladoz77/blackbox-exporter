@@ -34,10 +34,6 @@
     path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
   register: local_acme
 
-- name: Debug local acme status
-  ansible.builtin.debug:
-    msg: "Local acme.json exists: {{ local_acme.stat.exists }}"
-
 - name: Skip S3 download if local acme exists
   ansible.builtin.debug:
     msg: "Local acme.json found, skipping S3 download"
