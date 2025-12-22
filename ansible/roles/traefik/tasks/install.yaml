@@ -53,18 +53,20 @@
     amazon.aws.s3_object_info:
       bucket_name: "{{ s3_bucket_name }}"
       object_name: "{{ s3_key }}"
-      access_key: "{{ aws_access_key  }}"
-      secret_key: "{{ aws_secret_key  }}"
-      endpoint_url: "{{ yandex_storage_endpoint  }}"
+      endpoint_url: "{{ yandex_storage_endpoint }}"
+      access_key: "{{ aws_access_key }}"
+      secret_key: "{{ aws_secret_key }}"
       region: "{{ yandex_region }}"
     register: s3_acme_info
     failed_when: false
-    ignore_errors: yes
+
+  - ansible.builtin.debug:
+      var: s3_acme_info
 
   - name: Debug S3 acme status
     ansible.builtin.debug:
-      msg: "file acme.json does not exist in s3"
-    when: s3_acme_info.object_info is not defined
+      msg: "acme.json exists in s3"
+    when: s3_acme_info.object_info | length > 0
 
   - name: Ensure letsencrypt directory exists
     ansible.builtin.file:
@@ -72,7 +74,7 @@
       state: directory
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
-    when: s3_acme_info.object_info is defined
+    when: s3_acme_info.object_info | length > 0
 
   - name: Download acme.json from S3 if exists
     amazon.aws.s3_object:
@@ -80,12 +82,11 @@
       object: "{{ s3_key }}"
       dest: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
       mode: get
-      access_key: "{{ aws_access_key }}"
-      secret_key: "{{ aws_secret_key }}"
       endpoint_url: "{{ yandex_storage_endpoint }}"
       region: "{{ yandex_region }}"
-      encrypt: false
-    when: s3_acme_info.object_info is defined
+      access_key: "{{ aws_access_key }}"
+      secret_key: "{{ aws_secret_key }}"
+    when: s3_acme_info.object_info | length > 0
 
   - name: Set correct permissions on acme.json
     ansible.builtin.file:
@@ -93,7 +94,7 @@
       mode: '0600'
       owner: "{{ ansible_user }}"
       group: "{{ ansible_user }}"
-    when: s3_acme_info.object_info is defined
+    when: s3_acme_info.object_info | length > 0
 
   when: not local_acme.stat.exists
 

@@ -5,6 +5,8 @@ packages:
 - jq
 - unzip
 - python3-pip
+- python3-boto3
+- python3-botocore
 
 # traefik config
 traefik_docker_dir: /home/{{ ansible_user }}/traefik
