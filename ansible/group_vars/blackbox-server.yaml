@@ -1,0 +1,18 @@
+hostname: blackbox
+docker_network_name: blackbox
+packages:
+- jq
+- unzip
+
+# traefik config
+traefik_docker_dir: /home/{{ ansible_user }}/traefik
+traefik_container_name: traefik
+traefik_image: "traefik"
+traefik_version: "v3.5"
+acme_email: "vladoz77@yandex.ru"
+
+# blackbox-exporter config
+blackbox_exporter_url: blackbox.home-local.site
+blackbox_exporter_basic_auth_enabled: true
+blackbox_exporter_basic_auth_username: "admin"
+blackbox_exporter_basic_auth_password_hash: "$$2y$$05$$.0V7zbZKg9HQILVOcK77m.ZtOizpRvKKp82oqx8cTKJfa6LFhy1HG" # admin:admin

@@ -1,11 +1,8 @@
 # Install common packages for role
-packages:
+traefik_dependencies:
   - python3-pip
   - python3-boto3
   - python3-botocore
-# python_library:
-#   - boto3
-#   - botocore
 # docker config
 docker_network_name: "traefik"
 traefik_container_name: traefik

@@ -1,5 +1,5 @@
 # Параметры по умолчанию (можно переопределять)
-traefik_docker_dir: "/opt/traefik"
+traefik_docker_dir: "/home/{{ ansible_user }}/traefik"
 s3_bucket_name: "my-cert-bucket"
 s3_key: "{{ ansible_hostname }}/acme.json"
 aws_access_key: ""

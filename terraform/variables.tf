@@ -19,7 +19,7 @@ variable "folder_id" {
 variable "zone" {
   description = "Yandex Cloud zone"
   type        = string
-  default     = "ru-central1-a" 
+  default     = "ru-central1-a"
 }
 
 variable "ssh_pub_key" {

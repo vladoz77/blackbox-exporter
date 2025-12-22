@@ -1,10 +1,10 @@
 username = "ubuntu"
-zone = "ru-central1-a"
+zone     = "ru-central1-a"
 
 monitoring = {
   count         = 1
   instance_name = "monitoring"
-  platform_id = "standard-v1"
+  platform_id   = "standard-v1"
   cpu           = 2
   core_fraction = 20
   memory        = 4
@@ -36,7 +36,7 @@ monitoring = {
 
 blackbox = {
   count         = 1
-  platform_id = "standard-v1"
+  platform_id   = "standard-v1"
   instance_name = "blackbox"
   cpu           = 2
   core_fraction = 20

@@ -6,7 +6,7 @@
 
 - name: Install packages
   ansible.builtin.apt:
-    name: "{{ packages }}"
+    name: "{{ traefik_dependencies }}"
     state: present
     update_cache: true
 

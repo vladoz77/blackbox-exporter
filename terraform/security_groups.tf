@@ -29,3 +29,23 @@ resource "yandex_vpc_security_group" "blackbox-exporter-access" {
     description    = "accept all trafic to 9115 port"
   }
 }
+
+resource "yandex_vpc_security_group" "asme-access" {
+  name        = "asme-access"
+  network_id  = yandex_vpc_network.network.id
+  description = "Ingress rules for Traefik (HTTP/HTTPS and ACME challenge)"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTP for ACME challenge and web traffic"
+    port           = 80
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol       = "TCP"
+    description    = "HTTPS"
+    port           = 443
+    v4_cidr_blocks = ["0.0.0.0/0"]
+  }
+}

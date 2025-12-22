@@ -1,0 +1,28 @@
+services:
+  blackbox:
+    image: {{ blackbox_exporter_repository }}:v{{ blackbox_exporter_version }}
+    container_name: {{ blackbox_exporter_container_name }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.blackbox.rule=Host(`{{ blackbox_exporter_url }}`)"
+      - "traefik.http.routers.blackbox.entrypoints=websecure"
+      - "traefik.http.routers.blackbox.tls.certresolver=le"
+      - "traefik.http.services.blackbox.loadbalancer.server.port={{ blackbox_exporter_port }}"
+      {% if blackbox_exporter_basic_auth_enabled -%}
+      - "traefik.http.routers.blackbox.middlewares=blackbox-auth"
+      - "traefik.http.middlewares.blackbox-auth.basicauth.users={{ blackbox_exporter_basic_auth_username }}:{{ blackbox_exporter_basic_auth_password_hash }}"
+      {%- endif %}
+
+    ports:
+    - {{ blackbox_exporter_port }}:{{ blackbox_exporter_port }}
+    command:
+    - --config.file={{ blackbox_exporter_config_path }}
+    volumes:
+    - ./blackbox.yaml:{{ blackbox_exporter_config_path }}
+    restart: {{ blackbox_exporter_restart_policy }}
+    networks:
+    - {{ docker_network_name }}
+
+networks:
+  {{ docker_network_name }}:
+    external: true

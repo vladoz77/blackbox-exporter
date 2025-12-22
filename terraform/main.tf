@@ -67,9 +67,12 @@ module "blackbox" {
   boot_disk   = var.blackbox.boot_disk
   network_interfaces = [
     {
-      subnet_id      = yandex_vpc_subnet.subnet.id
-      nat            = true
-      security_group = [yandex_vpc_security_group.ssh-access.id, yandex_vpc_security_group.blackbox-exporter-access.id]
+      subnet_id = yandex_vpc_subnet.subnet.id
+      nat       = true
+      security_group = [yandex_vpc_security_group.ssh-access.id,
+        yandex_vpc_security_group.blackbox-exporter-access.id,
+        yandex_vpc_security_group.asme-access.id
+        ]
     }
   ]
   create_dns_record = true

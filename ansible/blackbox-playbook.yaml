@@ -1,0 +1,12 @@
+- name: Config blackbox server
+  hosts: blackbox-server
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    s3_bucket_name: acme-bucket
+  roles:
+    - common
+    - docker
+    - traefik
+    - blackbox-exporter
+    - sync_acme_to_s3
