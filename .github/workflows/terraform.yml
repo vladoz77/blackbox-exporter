@@ -8,8 +8,8 @@ on:
         type: choice
         default: apply
         options:
-          - apply
-          - destroy
+        - apply
+        - destroy
 permissions:
   id-token: write
 
@@ -19,144 +19,118 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_ACTION: ${{ github.event.inputs.terraform_action }}
-    
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Install terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.9.8'
+    - name: Install terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: '1.9.8'
 
-      - name: Config yandex provider
-        run: |
-          echo "Creating ~/.terraformrc for Yandex Cloud mirror"
-          cat > ~/.terraformrc <<EOF
-          provider_installation {
-            network_mirror {
-              url = "https://terraform-mirror.yandexcloud.net/"
-              include = ["registry.terraform.io/*/*"]
-            }
-            direct {
-               exclude = ["registry.terraform.io/*/*"]
-            }
+    - name: Config yandex provider
+      run: |
+        echo "Creating ~/.terraformrc for Yandex Cloud mirror"
+        cat > ~/.terraformrc <<EOF
+        provider_installation {
+          network_mirror {
+            url = "https://terraform-mirror.yandexcloud.net/"
+            include = ["registry.terraform.io/*/*"]
           }
-      
-      - name: Terraform Format Check
-        id: fmt
-        run: terraform fmt -check
-        continue-on-error: true
+          direct {
+             exclude = ["registry.terraform.io/*/*"]
+          }
+        }
 
-      - name: Generate IAM token
-        id: get-iam-token
-        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
-        with:
-          yc-sa-id: ${{ secrets.YC_SA_ID }}  
+    - name: Generate IAM token
+      id: get-iam-token
+      uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
+      with:
+        yc-sa-id: ${{ secrets.YC_SA_ID }}
 
-      - name: Terraform Init with S3 backend
-        id: init
-        run: |
-          echo "Запускаем terraform init"
-          cd terraform
-          terraform init \
-            -backend-config="access_key=${{ secrets.ACCESS_KEY }}" \
-            -backend-config="secret_key=${{ secrets.SECRET_KEY }}" \
-            -reconfigure
+    - name: Terraform Format Check
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
 
-      - name: Terraform plan
-        id: plan
-        env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
-          TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
-          TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
-          TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
-        run: |
-          echo "Запускаем terraform plan"
-          cd terraform
-          terraform plan
+    - name: Terraform Init with S3 backend
+      id: init
+      run: |
+        echo "Запускаем terraform init"
+        cd terraform
+        terraform init \
+          -backend-config="access_key=${{ secrets.ACCESS_KEY }}" \
+          -backend-config="secret_key=${{ secrets.SECRET_KEY }}" \
+          -reconfigure
 
-      - name: Terraform apply
-        if: env.TF_ACTION == 'apply'
-        id: apply
-        env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
-          TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
-          TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
-          TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
-        run: |
-          echo "Запускаем terraform apply"
-          cd terraform
-          terraform apply -auto-approve
+    - name: Terraform apply
+      if: env.TF_ACTION == 'apply'
+      id: apply
+      env:
+        TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
+        TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
+        TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
+        TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
+      run: |
+        echo "Запускаем terraform apply"
+        cd terraform
+        terraform plan
+        terraform apply -auto-approve
 
-      - name: Upload inventory file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ansible-inventory
-          path: ansible/inventory.ini
+    - name: Upload inventory file as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ansible-inventory
+        path: ansible/inventory.ini
 
-      - name: Terraform destroy
-        if: env.TF_ACTION == 'destroy'
-        id: destroy
-        env: 
-          TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
-          TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
-          TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
-          TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
-        run: |
-          echo "Запускаем terraform destroy"
-          cd terraform
-          terraform destroy -auto-approve
+    - name: Terraform destroy
+      if: env.TF_ACTION == 'destroy'
+      id: destroy
+      env:
+        TF_VAR_iam_token: ${{ steps.get-iam-token.outputs.token }}
+        TF_VAR_cloud_id: ${{ secrets.TF_VAR_CLOUD_ID }}
+        TF_VAR_folder_id: ${{ secrets.TF_VAR_FOLDER_ID }}
+        TF_VAR_ssh_pub_key: ${{ secrets.SSH_PUB_KEY }}
+      run: |
+        echo "Запускаем terraform destroy"
+        cd terraform
+        terraform plan
+        terraform destroy -auto-approve
 
-      - name: Save TF_ACTION for Ansible job
-        id: save-action
-        run: |
-          echo "tf_action=$TF_ACTION" >> $GITHUB_OUTPUT
-  
   ansible:
     name: Configure blackbox server
     needs: terraform
     runs-on: ubuntu-latest
-    if:  ${{ github.event.inputs.terraform_action == 'apply' }}
+    if: ${{ github.event.inputs.terraform_action == 'apply' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: "Install Ansible"
-        run: |
-          sudo apt update
-          sudo apt install -y ansible sshpass
+    - name: "Install Ansible"
+      run: |
+        sudo apt update
+        sudo apt install -y ansible sshpass
 
-      - name: Setup ssh config
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIV_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+    - name: Setup ssh config
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIV_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
 
-      - name: Download inventory artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ansible-inventory
-          path: ansible
+    - name: Download inventory artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ansible-inventory
+        path: ansible
 
-      - name: Run Ansible Playbook
-        run: |
-          cd ansible
-          cat inventory.ini
-          echo "Running Ansible Playbook"
-          ansible-playbook -i inventory.ini \
-          playbook.yaml \
-          -u ubuntu \
-          --ssh-extra-args "-o StrictHostKeyChecking=no"
-
-
-        
-
-        
-          
-         
-         
-
-      
-      
+    - name: Run Ansible Playbook
+      run: |
+        cd ansible
+        cat inventory.ini
+        echo "Running Ansible Playbook"
+        ansible-playbook -i inventory.ini \
+        playbook.yaml \
+        -u ubuntu \
+        --ssh-extra-args "-o StrictHostKeyChecking=no"
