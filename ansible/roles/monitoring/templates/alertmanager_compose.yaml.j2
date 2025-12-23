@@ -1,0 +1,24 @@
+services:
+    {{ alertmanager_container_name}}:
+        container_name: {{ alertmanager_container_name}}
+        image:  {{ alertmanager_image }}
+        restart: unless-stopped
+        labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.{{ alertmanager_container_name }}.rule=Host(`{{ alertmanager_url }}`)"
+        - "traefik.http.routers.{{ alertmanager_container_name }}.entrypoints=websecure"
+        - "traefik.http.routers.{{ alertmanager_container_name }}.tls.certresolver=le"
+        - "traefik.http.services.{{ alertmanager_container_name }}.loadbalancer.server.port={{ alertmanager_port }}"
+        - "traefik.http.routers.{{ alertmanager_container_name }}.service={{ alertmanager_container_name }}" 
+        command:
+        - "--config.file=/etc/alertmanager.yaml"
+        ports:
+        - "{{ alertmanager_port }}:{{ alertmanager_port }}"
+        volumes:
+        - "{{ alertmanager_dir }}/alertmanager.yaml:/etc/alertmanager.yaml"
+        networks:
+        - {{ docker_network_name | default('monitoring_network') }}
+
+networks:
+  {{ docker_network_name | default('monitoring_network') }}:
+    external: true        

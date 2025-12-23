@@ -22,8 +22,7 @@
     overwrite: always
     encrypt: false
     permission: []
-    
 
 - name: Success message
   ansible.builtin.debug:
-    msg: "✅ acme.json successfully synced to s3://{{ s3_bucket_name }}/{{ s3_key }}"
+    msg: "acme.json successfully synced to s3://{{ s3_bucket_name }}/{{ s3_key }}"

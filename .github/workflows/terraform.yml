@@ -99,7 +99,7 @@ jobs:
         terraform destroy -auto-approve
 
   ansible-provision:
-    name: Provision monitoring and blackbox server
+    name: Provision  blackbox server
     needs: terraform
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.terraform_action == 'apply' }}

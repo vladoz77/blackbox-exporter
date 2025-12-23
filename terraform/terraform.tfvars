@@ -1,39 +1,6 @@
 username = "ubuntu"
 zone     = "ru-central1-a"
 
-monitoring = {
-  count         = 1
-  instance_name = "monitoring"
-  platform_id   = "standard-v1"
-  cpu           = 2
-  core_fraction = 20
-  memory        = 4
-  boot_disk = {
-    type     = "network-hdd"
-    size     = 20
-    image_id = "fd80293ig2816a78q276"
-  }
-  tags        = []
-  environment = {}
-  dns_records = {
-    "prometheus" = {
-      name = "prometheus"
-      type = "A"
-      ttl  = 300
-    }
-    "grafana" = {
-      name = "grafana"
-      type = "A"
-      ttl  = 300
-    }
-    "alertmanager" = {
-      name = "alert"
-      type = "A"
-      ttl  = 300
-    }
-  }
-}
-
 blackbox = {
   count         = 1
   platform_id   = "standard-v1"
@@ -54,6 +21,26 @@ blackbox = {
       type = "A"
       ttl  = 300
     }
+    "prometheus" = {
+      name = "prometheus"
+      type = "A"
+      ttl  = 300
+    }
+    "grafana" = {
+      name = "grafana"
+      type = "A"
+      ttl  = 300
+    }
+    "alertmanager" = {
+      name = "alert"
+      type = "A"
+      ttl  = 300
+    }
+    "vmalert" = {
+      name = "vmalert"
+      type = "A"
+      ttl  = 300
+    }  
   }
 }
 

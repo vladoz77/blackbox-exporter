@@ -10,51 +10,52 @@
 
 - name: install {{ victoriametrics_container_name }}
   ansible.builtin.include_tasks: victoriametrics.yaml
-  when: victoriametrics_enable == true
+  when: victoriametrics_enable | default(true) | bool
 
-- name: install {{ vmalert_container_name }}
-  ansible.builtin.include_tasks: "{{ vmalert_container_name }}.yaml"
-  when: vmalert_enable == true
+- name: Wait for VictoriaMetrics to be healthy
+  ansible.builtin.uri:
+    url: "http://localhost:{{ victoriametrics_port }}/health"
+    method: GET
+    status_code: 200
+    timeout: 10
+  register: vm_health
+  until: vm_health.status == 200
+  retries: 30
+  delay: 10
+  when: victoriametrics_enable | default(true) | bool
 
 - name: install {{ alertmanager_container_name }}
-  ansible.builtin.include_tasks: "{{ alertmanager_container_name }}.yaml"
-  when: alertmanager_enable == true
+  ansible.builtin.include_tasks: alertmanager.yaml
+  when: alertmanager_enable | default(true) | bool
+
+- name: Wait for Alertmanager to be healthy
+  ansible.builtin.uri:
+    url: "http://localhost:{{ alertmanager_port }}/-/healthy"
+    method: GET
+    status_code: 200
+    timeout: 10
+  register: am_health
+  until: am_health.status == 200
+  retries: 20
+  delay: 10
+  when: alertmanager_enable | default(true) | bool
+
+- name: install {{ vmalert_container_name }}
+  ansible.builtin.include_tasks: vmalert.yaml
+  when: vmalert_enable | default(true) | bool
 
 - name: install {{ grafana_container_name }}
-  ansible.builtin.include_tasks: "{{ grafana_container_name }}.yaml"
-  when: grafana_enable == true
+  ansible.builtin.include_tasks: grafana.yaml
+  when: grafana_enable | default(true) | bool
 
-- name: install {{ loki_container_name }}
-  ansible.builtin.include_tasks: "{{ loki_container_name }}.yaml"
-  when: loki_enable == true
-
-# - name: install {{ alloy_container_name }}
-#   ansible.builtin.include_tasks: "{{ alloy_container_name }}.yaml"
-#   when: loki_enable == true
-
-- name: copy docker compose to {{ work_dir }}
-  ansible.builtin.template:
-    src: templates/docker-compose.yaml.j2
-    dest: "{{ docker_compose_dir }}"
-    group: "{{ username }}"
-    owner: "{{ username }}"
-
-- name: start monitoring project
-  community.docker.docker_compose_v2:
-    project_src: "{{ work_dir }}"
-    state: present
-    build: always
-    recreate: always
-    remove_orphans: true
-  when: monitoring_enable 
-    
-
-- name: delete monitoring project
-  community.docker.docker_compose_v2:
-    project_src: "{{ work_dir }}"
-    state: absent
-    build: always
-    recreate: always
-    remove_orphans: true
-  when: not monitoring_enable 
-    
+- name: Wait for Grafana to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    method: GET
+    status_code: 200
+    timeout: 10
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 40
+  delay: 15
+  when: grafana_enable | default(true) | bool

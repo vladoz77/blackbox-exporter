@@ -10,18 +10,6 @@
     state: present
     update_cache: true
 
-- name: Get containers using port 80 or 443
-  ansible.builtin.command: docker container ls -q --filter publish=80 --filter publish=443
-  register: containers_to_remove
-  ignore_errors: true
-
-- name: Stop and remove any container using port 80 or 443
-  community.docker.docker_container:
-    name: "{{ item }}"
-    state: absent
-  loop: "{{ containers_to_remove.stdout_lines }}"
-  when: containers_to_remove.stdout_lines | length > 0
-
 - name: Create folder traefik
   ansible.builtin.file:
     path: "{{ traefik_docker_dir }}"
@@ -89,7 +77,24 @@
 
   when: not local_acme.stat.exists
 
-- name: Copy template to {{ traefik_docker_dir }}
+- name: Create empty acme.json with correct permissions if still missing
+  ansible.builtin.file:
+    path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
+    state: touch
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: not local_acme.stat.exists
+
+- name: Wait for acme.json to be ready and non-empty
+  ansible.builtin.wait_for:
+    path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
+    state: present
+    search_regex: '^{'
+  delay: 3
+  timeout: 30
+
+- name: Copy template to traefic folder
   ansible.builtin.template:
     src: "templates/docker-compose-traefik.yaml.j2"
     dest: "{{ traefik_docker_dir }}/docker-compose.yaml"
@@ -99,5 +104,5 @@
 - name: start traefik
   community.docker.docker_compose_v2:
     project_src: "{{ traefik_docker_dir }}"
-    recreate: always
     state: present
+  

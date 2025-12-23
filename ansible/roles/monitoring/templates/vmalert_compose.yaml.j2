@@ -1,0 +1,28 @@
+services:
+    {{ vmalert_container_name }}:
+        container_name: {{ vmalert_container_name }}
+        image: {{ vmalert_image }}
+        restart: unless-stopped
+        labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.{{ vmalert_container_name }}.rule=Host(`{{ vmalert_url }}`)"
+        - "traefik.http.routers.{{ vmalert_container_name }}.entrypoints=websecure"
+        - "traefik.http.routers.{{ vmalert_container_name }}.tls.certresolver=le"
+        - "traefik.http.services.{{ vmalert_container_name }}.loadbalancer.server.port={{ vmalert_port }}"
+        - "traefik.http.routers.{{ vmalert_container_name }}.service={{ vmalert_container_name }}" 
+        command:
+        - "--remoteRead.url=http://{{ victoriametrics_container_name }}:{{ victoriametrics_port }}"
+        - "--datasource.url=http://{{ victoriametrics_container_name }}:{{ victoriametrics_port }}"
+        - "--rule=/etc/alerts/*.yaml"
+        - "--notifier.url=http://{{alertmanager_container_name }}:{{ alertmanager_port }}"
+        - "--external.url=http://{{ grafana_container_name }}:{{ grafana_port }}"
+        ports:
+        - "{{ vmalert_port }}:{{ vmalert_port }}"
+        volumes:
+        - "{{ vmalert_rules_folder }}:/etc/alerts"
+        networks:
+        - {{ docker_network_name | default('monitoring_network') }}
+
+networks:
+    {{ docker_network_name | default('monitoring_network') }}:
+        external: true

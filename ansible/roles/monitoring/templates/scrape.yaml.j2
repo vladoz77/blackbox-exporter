@@ -29,10 +29,4 @@ scrape_configs:
   - targets:
     - {{ grafana_container_name }}:{{ grafana_port }}/{{ default_metrics_path}}
 {% endif -%}
-{% if loki_enable %}
-- job_name: {{ loki_container_name }}
-  static_configs:
-  - targets:
-    - {{ loki_container_name }}:{{ loki_port }}/{{ default_metrics_path}}
-{% endif -%}
 

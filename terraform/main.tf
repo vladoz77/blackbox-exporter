@@ -27,31 +27,7 @@ provider "yandex" {
   token     = var.iam_token
   cloud_id  = var.cloud_id
   folder_id = var.folder_id
-  zone      = "ru-central1-a"
-}
-
-
-module "monitoring" {
-  source = "./modules/yc-instance"
-
-  count       = var.monitoring.count
-  name        = "monitoring-${count.index + 1}"
-  zone        = var.zone
-  platform_id = var.monitoring.platform_id
-  cores       = var.monitoring.cpu
-  memory      = var.monitoring.memory
-  ssh         = "${var.username}:${var.ssh_pub_key}"
-  boot_disk   = var.monitoring.boot_disk
-  network_interfaces = [
-    {
-      subnet_id      = yandex_vpc_subnet.subnet.id
-      nat            = true
-      security_group = []
-    }
-  ]
-  create_dns_record = true
-  dns_zone_id       = data.yandex_dns_zone.zone.id
-  dns_records       = var.monitoring.dns_records
+  zone      = var.zone
 }
 
 module "blackbox" {
@@ -69,10 +45,11 @@ module "blackbox" {
     {
       subnet_id = yandex_vpc_subnet.subnet.id
       nat       = true
-      security_group = [yandex_vpc_security_group.ssh-access.id,
+      security_group = [
+        yandex_vpc_security_group.ssh-access.id,
         yandex_vpc_security_group.blackbox-exporter-access.id,
         yandex_vpc_security_group.asme-access.id
-        ]
+      ]
     }
   ]
   create_dns_record = true
@@ -85,10 +62,10 @@ module "blackbox" {
 resource "local_file" "inventory" {
   content = templatefile("./inventory.tftpl",
     {
-      monitoring = flatten(module.monitoring[*].public_ips),
-      blackbox   = flatten(module.blackbox[*].public_ips),
+      blackbox   = flatten(module.blackbox[*].public_ips)
     }
   )
   filename   = "../ansible/inventory.ini"
-  depends_on = [module.monitoring, module.blackbox]
+  depends_on = [module.blackbox]
 }
+

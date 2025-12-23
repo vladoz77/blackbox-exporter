@@ -9,14 +9,3 @@ datasources:
   isDefault: true
 {% endif -%}
 
-{% if loki_enable %}
-- name: Loki
-  type: loki
-  access: proxy
-  url: http://{{ loki_container_name }}:{{ loki_port }}
-  basicAuth: false
-  isDefault: false
-  editable: true
-  version: 1
-  orgId: 1
-{% endif -%}

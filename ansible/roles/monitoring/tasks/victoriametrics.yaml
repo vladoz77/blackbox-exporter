@@ -19,3 +19,16 @@
     owner: "{{ username }}"
     group: "{{ username }}"
     mode: '0644'
+
+- name: Create Victoriametrics docker-compose file
+  ansible.builtin.template:
+    src: templates/victoriametrics_compose.yaml.j2
+    dest: "{{ victoriametrics_dir }}/docker-compose.yaml"
+    owner: "{{ username }}"
+    group: "{{ username }}" 
+
+- name: Start Victoriametrics container
+  community.docker.docker_compose_v2:
+    project_src: "{{ victoriametrics_dir }}"
+    state: present
+    recreate: always
