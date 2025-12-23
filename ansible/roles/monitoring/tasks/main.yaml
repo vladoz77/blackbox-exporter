@@ -1,12 +1,3 @@
-- name: Install  collection 
-  ansible.builtin.command: "ansible-galaxy collection install -r {{ role_path }}/requirements.yaml --force"
-  become: false
-  run_once: true
-  delegate_to: localhost
-
-- name: Set username
-  ansible.builtin.set_fact:
-    username: "{{ username | default(ansible_user) }}"
 
 - name: install {{ victoriametrics_container_name }}
   ansible.builtin.include_tasks: victoriametrics.yaml

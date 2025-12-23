@@ -1,4 +1,5 @@
 hostname: blackbox
+username: ubuntu
 docker_network_name: blackbox
 packages:
 - jq

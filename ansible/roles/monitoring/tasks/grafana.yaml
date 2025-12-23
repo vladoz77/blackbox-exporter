@@ -42,4 +42,3 @@
 - name: Start Grafana container
   community.docker.docker_compose_v2:
     project_src: "{{ grafana_dir }}"    
-    recreate: always

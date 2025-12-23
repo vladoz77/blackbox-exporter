@@ -39,9 +39,6 @@
     register: s3_acme_info
     failed_when: false
 
-  - ansible.builtin.debug:
-      var: s3_acme_info
-
   - name: Debug S3 acme status
     ansible.builtin.debug:
       msg: "acme.json exists in s3"
@@ -77,22 +74,19 @@
 
   when: not local_acme.stat.exists
 
-- name: Create empty acme.json with correct permissions if still missing
-  ansible.builtin.file:
+- name: Re-check local acme.json
+  stat:
+    path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
+  register: acme_after_restore
+
+- name: Create empty acme.json (first run only)
+  file:
     path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
     state: touch
     mode: '0600'
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-  when: not local_acme.stat.exists
-
-- name: Wait for acme.json to be ready and non-empty
-  ansible.builtin.wait_for:
-    path: "{{ traefik_docker_dir }}/letsencrypt/acme.json"
-    state: present
-    search_regex: '^{'
-  delay: 3
-  timeout: 30
+  when: not acme_after_restore.stat.exists
 
 - name: Copy template to traefic folder
   ansible.builtin.template:

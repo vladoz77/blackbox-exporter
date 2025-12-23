@@ -1,131 +1,280 @@
-# Ansible Role: Monitoring 📊
+Отлично, ниже — **README.md, приведённый к GitHub-стилю**:
+короче абзацы, якоря, emoji-заголовки, badge-ready, хорошо читается в превью репозитория.
 
-## Описание
-**Роль для установки и настройки системы мониторинга, включающей VictoriaMetrics, Grafana, Alertmanager, Loki и другие компоненты.**
-
----
-
-## Особенности ✅
-
-- Установка и настройка компонентов мониторинга через Docker и docker-compose.
-- Поддержка различных конфигураций и параметров для каждого компонента.
+Можно **копировать 1-в-1**.
 
 ---
 
-## Переменные роли (важные) 🔧
+# 📊 Monitoring Stack (VictoriaMetrics + Grafana + Alertmanager)
 
-Все значения по умолчанию находятся в `defaults/main.yaml`.
+![ansible](https://img.shields.io/badge/ansible-2.15%2B-blue)
+![docker](https://img.shields.io/badge/docker-24%2B-blue)
+![compose](https://img.shields.io/badge/docker--compose-v2-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
 
-- `monitoring_enable` (bool) — включить/выключить роль (по умолчанию `true`).
-- `docker_network_name` (string) — имя сети Docker (по умолчанию `monitoring_network`).
-- `victoriametrics_enable` (bool) — включить VictoriaMetrics (по умолчанию `true`).
-- `victoriametrics_version` (string) — версия VictoriaMetrics (по умолчанию `v1.118.0`).
-- `grafana_enable` (bool) — включить Grafana (по умолчанию `true`).
-- `grafana_version` (string) — версия Grafana (по умолчанию `11.5.0`).
-- `alertmanager_enable` (bool) — включить Alertmanager (по умолчанию `true`).
-- `loki_enable` (bool) — включить Loki (по умолчанию `true`).
+Production-ready **Ansible role** for deploying a complete monitoring stack using:
 
-> Все другие значения и комментарии — смотрите в `defaults/main.yaml`.
+* **VictoriaMetrics** — time series database
+* **vmalert** — alert evaluation engine
+* **Alertmanager** — alert routing
+* **Grafana** — dashboards & visualization
+* **Traefik** — external ingress / reverse proxy
+
+The stack is deployed via **Docker Compose v2** and designed to be:
+
+* reproducible
+* idempotent
+* easy to extend
+* suitable for production
 
 ---
 
-## Файлы роли
+## 📐 Architecture
 
-- `tasks/main.yaml` — основная логика установки компонентов.
-- `templates/docker-compose.yaml.j2` — шаблон docker-compose для всех сервисов.
+```text
+                +-------------+
+                |   Traefik   |
+                +------+------+
+                       |
+    ------------------------------------------------
+    |              |               |              |
++---v---+      +---v---+       +---v---+      +---v---+
+|  VM   |      | vmalert|       |  AM   |      |Grafana|
+| 8428  |      |  8880  |       | 9093  |      | 3000  |
++-------+      +--------+       +--------+      +-------+
+```
+
+All services are connected to a shared **external Docker network**.
 
 ---
 
-## Пример использования (playbook) 📋
+## 🚀 Features
+
+* ✔️ VictoriaMetrics with dynamic scrape configs
+* ✔️ vmalert with file-based alert rules
+* ✔️ Alertmanager ready for Slack / Telegram / Webhooks
+* ✔️ Grafana auto-provisioning (datasources & dashboards)
+* ✔️ Traefik labels for HTTPS exposure
+* ✔️ Health checks and service ordering
+* ✔️ Fully configurable via variables
+
+---
+
+## 📦 Requirements
+
+### Control Node
+
+* Ansible **>= 2.15**
+* Install required collections:
+
+  ```bash
+  ansible-galaxy collection install -r requirements.yaml
+  ```
+
+### Managed Host
+
+* Docker **>= 24**
+* Docker Compose v2 (`docker compose`)
+* Existing Docker network (default: `monitoring_network`)
+* Traefik configured with:
+
+  * entrypoint `websecure`
+  * certResolver `le`
+
+---
+
+## ⚙️ Role Variables
+
+### Global
+
+| Variable               | Default                           | Description             |
+| ---------------------- | --------------------------------- | ----------------------- |
+| `work_dir`             | `/home/{{ username }}/monitoring` | Base directory          |
+| `docker_network_name`  | `monitoring_network`              | External Docker network |
+| `default_metrics_path` | `metrics`                         | Metrics endpoint        |
+
+---
+
+### VictoriaMetrics
+
+| Variable                  | Default         |
+| ------------------------- | --------------- |
+| `victoriametrics_enable`  | `true`          |
+| `victoriametrics_version` | `v1.118.0`      |
+| `victoriametrics_port`    | `8428`          |
+| `victoriametrics_url`     | `vm.home.local` |
+| `scrape_interval`         | `10s`           |
+
+---
+
+### vmalert
+
+| Variable          | Default              |
+| ----------------- | -------------------- |
+| `vmalert_enable`  | `true`               |
+| `vmalert_version` | `v1.118.0`           |
+| `vmalert_port`    | `8880`               |
+| `vmalert_url`     | `vmalert.home.local` |
+
+---
+
+### Alertmanager
+
+| Variable               | Default                   |
+| ---------------------- | ------------------------- |
+| `alertmanager_enable`  | `true`                    |
+| `alertmanager_version` | `v0.28.0`                 |
+| `alertmanager_port`    | `9093`                    |
+| `alertmanager_url`     | `alertmanager.home.local` |
+
+---
+
+### Grafana
+
+| Variable          | Default              |
+| ----------------- | -------------------- |
+| `grafana_enable`  | `true`               |
+| `grafana_version` | `11.5.0`             |
+| `grafana_port`    | `3000`               |
+| `grafana_url`     | `grafana.home.local` |
+
+---
+
+## 🗂️ Directory Structure
+
+```text
+monitoring/
+├── victoriametrics/
+│   ├── docker-compose.yaml
+│   ├── scrape.yaml
+│   └── jobs/
+├── vmalert/
+│   ├── docker-compose.yaml
+│   └── rules/
+├── alertmanager/
+│   ├── docker-compose.yaml
+│   └── alertmanager.yaml
+└── grafana/
+    ├── docker-compose.yaml
+    ├── dashboards.yaml
+    ├── datasources.yaml
+    └── dashboards/
+```
+
+---
+
+## 🔍 Scrape Configuration
+
+Add additional scrape jobs to:
+
+```text
+files/additional_scrape_configs/*.yaml
+```
+
+They will be mounted into VictoriaMetrics:
+
+```text
+/etc/prometheus/jobs/
+```
+
+and loaded automatically.
+
+---
+
+## 📈 Grafana Provisioning
+
+Grafana is fully provisioned using file-based configuration:
+
+* Datasources
+* Dashboards
+
+### Dashboards
+
+Stored in:
+
+```text
+files/dashboards/
+```
+
+and updated automatically.
+
+---
+
+## 🚨 Alerting
+
+### vmalert Rules
+
+```text
+files/rules/*.yaml
+```
+
+Mounted into:
+
+```text
+/etc/alerts/
+```
+
+### Alertmanager
+
+By default, Alertmanager uses a **blackhole receiver**.
+
+For production, configure:
+
+* Slack
+* Telegram
+* Email
+* Webhooks
+
+Template:
+
+```text
+templates/alertmanager.yaml.j2
+```
+
+---
+
+## ▶️ Usage
 
 ```yaml
-- hosts: monitoring-servers
+- hosts: monitoring
   become: true
   roles:
-    - role: monitoring
-      vars:
-        monitoring_enable: true
-        grafana_enable: true
-        victoriametrics_enable: true
+    - monitoring
+```
+
+Run:
+
+```bash
+ansible-playbook site.yaml
 ```
 
 ---
 
-## Как это работает (коротко) 💡
+## 🏷️ Tags
 
-1. Роль проверяет, включены ли компоненты.
-2. Устанавливает необходимые зависимости и запускает сервисы через docker-compose.
+Run individual components:
 
----
-
-## Отладка и тестирование 🧪
-
-- Проверьте, что создана папка для docker-compose и в ней лежат необходимые конфигурации.
-- Просмотрите логи контейнеров для диагностики.
-
----
-
-## Советы по безопасности 🔐
-
-- Убедитесь, что все пароли и конфиденциальные данные хранятся безопасно.
-
----
-
-## Лицензия
-
-MIT — используйте по своему усмотрению.
-
----
-
-## Примеры конфигурации 📄
-
-### 1. Пример конфигурации для VictoriaMetrics
-
-```yaml
-# scrape.yaml
-
-scrape_configs:
-  - job_name: 'victoriametrics'
-    static_configs:
-      - targets: ['localhost:8428']
-```
-
-### 2. Пример конфигурации для Grafana
-
-```yaml
-# datasources.yaml
-
-apiVersion: 1
-providers:
-  - name: 'Prometheus'
-    type: prometheus
-    access: proxy
-    url: http://victoriametrics:8428
-    jsonData:
-      httpMethod: POST
-```
-
-### 3. Пример конфигурации для Alertmanager
-
-```yaml
-# alertmanager.yaml
-
-global:
-  resolve_timeout: 5m
-
-route:
-  group_by: ['alertname']
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 3h
-  receiver: 'default'
-
-receivers:
-  - name: 'default'
-    webhook_configs:
-      - url: 'http://localhost:5000/alerts'
+```bash
+ansible-playbook site.yaml --tags grafana
+ansible-playbook site.yaml --tags victoriametrics
+ansible-playbook site.yaml --tags alertmanager
 ```
 
 ---
 
+## 📝 Notes & Best Practices
+
+* Do not expose container ports when using Traefik
+* Ensure the Docker network exists:
+
+  ```bash
+  docker network create monitoring_network
+  ```
+* For production environments:
+
+  * use external volumes
+  * configure Alertmanager receivers
+  * enable authentication in Grafana
+
+---
 

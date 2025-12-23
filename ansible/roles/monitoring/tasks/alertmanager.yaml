@@ -23,4 +23,3 @@
   community.docker.docker_compose_v2:
     project_src: "{{ alertmanager_dir }}"
     state: present  
-    recreate: always
