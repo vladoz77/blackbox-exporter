@@ -4,11 +4,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  install_docker:
+  deploy_blackbox:
     runs-on: self-hosted
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+    
       - uses: actions/checkout@v4
 
       - name: Install docker from script
@@ -20,5 +19,46 @@ jobs:
           else
               echo "Docker is already installed."
           fi
+
+      - name: create blackbox exporter folder
+        run: |
+          echo "Creating directory for blackbox-exporter configuration..."
+          mkdir -p ~/blackbox-exporter
+
+      - name: Create config for blackbox exporter
+        run: |
+          echo "Creating blackbox-exporter configuration file..."
+          cat > ~/blackbox-exporter/blackbox.yml << EOF
+          modules:
+            https_endpoint:
+              prober: http
+              timeout: 15s
+              http:
+                method: GET
+                valid_http_versions:
+                - HTTP/1.1
+                - HTTP/2.0
+                fail_if_not_ssl: true
+                no_follow_redirects: false
+                ip_protocol_fallback: false
+                preferred_ip_protocol: ip4
+          EOF
+
+      - name: run blackbox exporter container
+        run: |
+          if [ "$(docker ps -q -f name=blackbox-exporter)" ]; then
+              echo "blackbox-exporter container is already running."
+          else
+              echo "Running blackbox-exporter container..."
+              docker run -d --name blackbox-exporter \
+                -p 9115:9115 \
+                -v ~/blackbox-exporter/blackbox.yml:/etc/blackbox_exporter/blackbox.yml \
+                prom/blackbox-exporter --config.file=/etc/blackbox_exporter/blackbox.yml
+          fi
+          echo "blackbox-exporter is running."
+
+
+
+          
 
       
