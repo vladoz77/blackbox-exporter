@@ -16,17 +16,11 @@ env:
   PROMETHEUS_CONTAINER_NAME: "prometheus"
   PROMETHEUS_VERSION: "latest"
   PROMETHEUS_PORT: "9090"
+  DOCKER_NETWORK: "monitoring_network"
 
 jobs:
   deploy_blackbox:
     runs-on: self-hosted
-    env:
-      ALLOWED_IP: "172.16.10.1"
-      IMAGE: "prom/blackbox-exporter"
-      CONTAINER_NAME: "blackbox-exporter"
-      VERSION: "latest"
-      PORT: "9115"
-    
     steps:
     
       - name: Install docker from script
@@ -38,12 +32,13 @@ jobs:
           else
               echo "Docker is already installed."
           fi
+
           # Create docker network if not exists
-          if ! sudo docker network ls | grep -q "monitoring_network"; then
-              echo "Creating docker network 'monitoring_network'..."
-              sudo docker network create monitoring_network
+          if ! sudo docker network ls | grep -q ${DOCKER_NETWORK}; then
+              echo "Creating docker network ${DOCKER_NETWORK}..."
+              sudo docker network create $DOCKER_NETWORK
           else
-              echo "Docker network 'monitoring_network' already exists."
+              echo "Docker network $DOCKER_NETWORK already exists."
           fi
 
       - name: create blackbox exporter folder
@@ -53,22 +48,75 @@ jobs:
 
       - name: Create self-signed SSL certificates
         run: |
-          echo "Generating self-signed SSL certificates..."
-          if [ -f "${CERTS_DIR}/blackbox.crt" ] || [ -f "${CERTS_DIR}/blackbox.key" ]; then
-              echo "SSL certificates already exist. Skipping generation."
+          # Create CA
+          if [ -f "${CERTS_DIR}/ca.crt" ] || [ -f "${CERTS_DIR}/ca.key" ]; then
+            echo "CA certificates already exist. Skipping generation."
           else
-              echo "SSL certificates do not exist. Generating new ones."
-              openssl req -newkey rsa:4096 \
-                -x509 \
-                -sha256 \
-                -days 3650 \
-                -nodes \
-                -out blackbox.crt \
-                -keyout blackbox.key \
-                -subj "/C=RU/L=Ryazan/O=Fabrika/OU=IT/CN=blackbox.home.local"
-              # Move generated certificates to the certs directory
-              mv blackbox.crt blackbox.key ${CERTS_DIR}/
-              chmod 644 ${CERTS_DIR}/*
+            echo "CA certificates do not exist. Generating new ones."
+            openssl req -newkey rsa:4096 \
+              -x509 \
+              -sha256 \
+              -days 3650 \
+              -nodes \
+              -out ${CERTS_DIR}/ca.crt \
+              -keyout ${CERTS_DIR}/ca.key \
+              -subj "/C=RU/L=Ryazan/O=Fabrika/OU=IT/CN=Fabrika-CA"
+
+            chmod 600 "${CERTS_DIR}/ca.key"
+            chmod 644 "${CERTS_DIR}/ca.crt"
+          fi
+
+          # Create Blackbox key and csr
+          if [ -f "${CERTS_DIR}/blackbox.key" ]; then
+            echo "blackbox.key already exist"
+          else 
+            echo "Generating blackbox private key"
+            openssl genrsa -out "${CERTS_DIR}/blackbox.key" 2048
+            chmod 600 "${CERTS_DIR}/blackbox.key"
+          fi
+
+          if [ -f "${CERTS_DIR}/blackbox.csr" ]; then
+            echo "blackbox.csr already exists"
+          else
+            echo "Generating blackbox CSR"
+            openssl req -new \
+              -key "${CERTS_DIR}/blackbox.key" \
+              -out "${CERTS_DIR}/blackbox.csr" \
+              -subj "/C=RU/L=Ryazan/O=Fabrika/OU=Monitoring/CN=blackbox.home.local"
+          fi
+
+          # SAN config
+          cat > "${CERTS_DIR}/blackbox.ext" << EOF
+            authorityKeyIdentifier=keyid,issuer
+            basicConstraints=CA:FALSE
+            keyUsage = digitalSignature, keyEncipherment
+            extendedKeyUsage = serverAuth
+            subjectAltName = @alt_names
+
+            [alt_names]
+            DNS.1 = blackbox
+            DNS.2 = blackbox-exporter
+            DNS.3 = blackbox.home.local
+            IP.1  = 127.0.0.1
+          EOF
+
+          # Sign certificate
+          if [ -f "${CERTS_DIR}/blackbox.crt" ]; then
+            echo "Certificate already exists. Skipping..."
+          else
+            openssl x509 -req \
+              -in "${CERTS_DIR}/blackbox.csr" \
+              -CA "${CERTS_DIR}/ca.crt" \
+              -CAkey "${CERTS_DIR}/ca.key" \
+              -CAcreateserial \
+              -out "${CERTS_DIR}/blackbox.crt" \
+              -days 3650 \
+              -sha256 \
+              -extfile "${CERTS_DIR}/blackbox.ext"
+
+            chmod 644 "${CERTS_DIR}/blackbox.crt"
+            rm -f "${CERTS_DIR}/blackbox.csr"
+            rm -f "${CERTS_DIR}/blackbox.ext"
           fi
 
    
@@ -123,6 +171,8 @@ jobs:
           echo "Running ${BLACKBOX_CONTAINER_NAME} container..."
 
           sudo docker run -d --name ${BLACKBOX_CONTAINER_NAME} \
+            --network ${DOCKER_NETWORK} \
+            --restart unless-stopped \
             -p ${PORT}:${PORT} \
             -v "${BLACKBOX_BASE_DIR}/blackbox.yml:/etc/blackbox_exporter/blackbox.yml" \
             -v "${BLACKBOX_BASE_DIR}/web-config.yml:/etc/blackbox_exporter/web-config.yml" \
@@ -131,3 +181,69 @@ jobs:
             --config.file=/etc/blackbox_exporter/blackbox.yml \
             --web.config.file=/etc/blackbox_exporter/web-config.yml
           echo "blackbox-exporter is running."
+  
+  deploy_prometheus:
+    runs-on: self-hosted
+    needs: deploy_blackbox
+    steps:
+
+      - name: Create prometheus config dir
+        run: |
+          echo "Creating directory ${PROMETHEUS_BASE_DIR} for Prometheus configuration..."
+          mkdir -p $PROMETHEUS_BASE_DIR
+      
+      - name: Create prometheus config file
+        run: |
+          echo "Creating Prometheus configuration file..."
+          cat > $PROMETHEUS_BASE_DIR/prometheus.yml << EOF
+          global:
+            scrape_interval: 30s
+            evaluation_interval: 30s
+
+          scrape_configs:
+          - job_name: $BLACKBOX_CONTAINER_NAME
+            scheme: https 
+            tls_config:
+              insecure_skip_verify: false
+              ca_file: /certs/ca.crt
+
+            basic_auth:
+              username: blackbox
+              password: ${{ secrets.BLACKBOX_PASSWORD}}
+            metrics_path: /probe
+            params:
+              module: [ https_endpoint ]
+            static_configs:
+            - targets:
+              - lampa.msk.home-local.site
+            relabel_configs:
+            - source_labels: [ __address__ ]
+              target_label: __param_target
+            - source_labels: [ __param_target ]
+              target_label: instance
+            - target_label: __address__
+              replacement: $BLACKBOX_CONTAINER_NAME:$BLACKBOX_PORT
+          EOF
+
+      - name: Check if prometheus container is already running delete if exists
+        run: |
+          echo "Checking if ${PROMETHEUS_CONTAINER_NAME} container is running..."
+          EXISTING=$(sudo docker ps -aq -f name="^${PROMETHEUS_CONTAINER_NAME}$")
+          if [ "$EXISTING" ]; then
+              echo "${PROMETHEUS_CONTAINER_NAME} container is already running, removing it..."
+              sudo docker rm -f "${PROMETHEUS_CONTAINER_NAME}"
+          fi
+
+      - name: Run prometheus
+        run: |
+          echo "Running $PROMETHEUS_CONTAINER_NAME container..."
+          docker run -d --name $PROMETHEUS_CONTAINER_NAME \
+            --network ${DOCKER_NETWORK} \
+            --restart unless-stopped \
+            -p $PROMETHEUS_PORT:$PROMETHEUS_PORT \
+            -v $PROMETHEUS_BASE_DIR/prometheus.yml:/etc/prometheus/prometheus.yml \
+            -v $CERTS_DIR/ca.crt:/certs/ca.crt:ro \
+            $PROMETHEUS_IMAGE:$PROMETHEUS_VERSION \
+            --config.file=/etc/prometheus/prometheus.yml
+          echo "Prometheus is running."
+              

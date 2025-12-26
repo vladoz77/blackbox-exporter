@@ -37,22 +37,76 @@ systemctl enable --now docker
 echo "Creating directory ${BASE_DIR} and ${CERTS_DIR} for blackbox-exporter configuration..."
 mkdir -p $BASE_DIR $CERTS_DIR
 
-# Generation of self-signed SSL certificates
-echo "Generating self-signed SSL certificates..."
-if [ -f "$CERTS_DIR/blackbox.crt" ] || [ -f "$CERTS_DIR/blackbox.key" ]; then
-    echo "SSL certificates already exist. Skipping generation."
+
+# Create CA
+if [ -f "${CERTS_DIR}/ca.crt" ] || [ -f "${CERTS_DIR}/ca.key" ]; then
+  echo "CA certificates already exist. Skipping generation."
 else
-    echo "SSL certificates do not exist. Generating new ones."
-    openssl req -newkey rsa:4096 \
-      -x509 \
-      -sha256 \
-      -days 3650 \
-      -nodes \
-      -out blackbox.crt \
-      -keyout blackbox.key \
-      -subj "/C=RU/L=Ryazan/O=Fabrika/OU=IT/CN=blackbox.home.local"
-    # Move generated certificates to the certs directory
-    mv blackbox.crt blackbox.key $CERTS_DIR/
+  echo "CA certificates do not exist. Generating new ones."
+  openssl req -newkey rsa:4096 \
+    -x509 \
+    -sha256 \
+    -days 3650 \
+    -nodes \
+    -out ${CERTS_DIR}/ca.crt \
+    -keyout ${CERTS_DIR}/ca.key \
+    -subj "/C=RU/L=Ryazan/O=Fabrika/OU=IT/CN=Fabrika-CA"
+
+  chmod 600 "${CERTS_DIR}/ca.key"
+  chmod 644 "${CERTS_DIR}/ca.crt"
+fi
+
+# Create Blackbox key and csr
+if [ -f "${CERTS_DIR}/blackbox.key" ]; then
+  echo "blackbox.key already exist"
+else 
+  echo "Generating blackbox private key"
+  openssl genrsa -out "${CERTS_DIR}/blackbox.key" 2048
+  chmod 600 "${CERTS_DIR}/blackbox.key"
+fi
+
+if [ -f "${CERTS_DIR}/blackbox.csr" ]; then
+  echo "blackbox.csr already exists"
+else
+  echo "Generating blackbox CSR"
+  openssl req -new \
+    -key "${CERTS_DIR}/blackbox.key" \
+    -out "${CERTS_DIR}/blackbox.csr" \
+    -subj "/C=RU/L=Ryazan/O=Fabrika/OU=Monitoring/CN=blackbox.home.local"
+fi
+
+# SAN config
+cat > "${CERTS_DIR}/blackbox.ext" << EOF
+  authorityKeyIdentifier=keyid,issuer
+  basicConstraints=CA:FALSE
+  keyUsage = digitalSignature, keyEncipherment
+  extendedKeyUsage = serverAuth
+  subjectAltName = @alt_names
+
+  [alt_names]
+  DNS.1 = blackbox
+  DNS.2 = blackbox-exporter
+  DNS.3 = blackbox.home.local
+  IP.1  = 127.0.0.1
+EOF
+
+# Sign certificate
+if [ -f "${CERTS_DIR}/blackbox.crt" ]; then
+  echo "Certificate already exists. Skipping..."
+else
+  openssl x509 -req \
+    -in "${CERTS_DIR}/blackbox.csr" \
+    -CA "${CERTS_DIR}/ca.crt" \
+    -CAkey "${CERTS_DIR}/ca.key" \
+    -CAcreateserial \
+    -out "${CERTS_DIR}/blackbox.crt" \
+    -days 3650 \
+    -sha256 \
+    -extfile "${CERTS_DIR}/blackbox.ext"
+
+  chmod 644 "${CERTS_DIR}/blackbox.crt"
+  rm -f "${CERTS_DIR}/blackbox.csr"
+  rm -f "${CERTS_DIR}/blackbox.ext"
 fi
 
   # Creation of blackbox-exporter configuration file
