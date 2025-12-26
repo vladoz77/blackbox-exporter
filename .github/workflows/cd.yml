@@ -173,7 +173,7 @@ jobs:
         run: |
           echo "Running ${BLACKBOX_CONTAINER_NAME} container..."
 
-          docker run -d --name ${BLACKBOX_CONTAINER_NAME} \
+          sudo docker run -d --name ${BLACKBOX_CONTAINER_NAME} \
             --network ${DOCKER_NETWORK} \
             --restart unless-stopped \
             -p ${BLACKBOX_PORT}:${BLACKBOX_PORT} \
@@ -184,11 +184,6 @@ jobs:
             --config.file=/etc/blackbox_exporter/blackbox.yml \
             --web.config.file=/etc/blackbox_exporter/web-config.yml
           echo "blackbox-exporter is running."
-  
-  deploy_prometheus:
-    runs-on: self-hosted
-    needs: deploy_blackbox
-    steps:
 
       - name: Create prometheus config dir
         run: |
@@ -240,7 +235,7 @@ jobs:
       - name: Run prometheus
         run: |
           echo "Running $PROMETHEUS_CONTAINER_NAME container..."
-          docker run -d --name $PROMETHEUS_CONTAINER_NAME \
+          sudo docker run -d --name $PROMETHEUS_CONTAINER_NAME \
             --network ${DOCKER_NETWORK} \
             --restart unless-stopped \
             -p $PROMETHEUS_PORT:$PROMETHEUS_PORT \
@@ -249,4 +244,7 @@ jobs:
             $PROMETHEUS_IMAGE:$PROMETHEUS_VERSION \
             --config.file=/etc/prometheus/prometheus.yml
           echo "Prometheus is running."
+  
+
+
               
