@@ -41,6 +41,9 @@ jobs:
               echo "Docker network $DOCKER_NETWORK already exists."
           fi
 
+          sudo usermod -aG docker $USER
+
+
       - name: create blackbox exporter folder
         run: |
           echo "Creating directory ${BLACKBOX_BASE_DIR} and ${CERTS_DIR} for blackbox-exporter configuration..."
@@ -184,6 +187,7 @@ jobs:
   
   deploy_prometheus:
     runs-on: self-hosted
+    needs: deploy_blackbox
     steps:
 
       - name: Create prometheus config dir
