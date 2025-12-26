@@ -54,6 +54,14 @@ jobs:
               mv blackbox.crt blackbox.key ${CERTS_DIR}/
           fi
 
+      - name: Generate HASH for blackbox password
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apache2-utils
+
+          echo "Generate password hash"
+          BLACKBOX_PASSWORD_HASH=$(echo ${{ secrets.blackbox_password }} | htpasswd -nBiC 10 blackbox | cut -d: -f2)
+      
       - name: Create config for blackbox exporter
         run: |
           echo "Creating blackbox-exporter configuration file..."
@@ -74,14 +82,21 @@ jobs:
           EOF
 
       - name: Create blackbox web configuration with TLS
+        env:
+          BLACKBOX_PASSWORD: ${{ secrets.blackbox_password }}
         run: |
-          cat > ${BASE_DIR}/web-config.yml << 'EOF'
+          echo "Generate password hash"
+          sudo apt-get update
+          sudo apt-get install -y apache2-utils
+          BLACKBOX_PASSWORD_HASH=$(printf '%s' "$BLACKBOX_PASSWORD" | htpasswd -nBiC 10 blackbox | cut -d: -f2)
+          
+          cat > ${BASE_DIR}/web-config.yml << EOF
           tls_server_config:
             cert_file: /certs/blackbox.crt
             key_file: /certs/blackbox.key
           
           basic_auth_users:
-            blackbox: $2y$10$1KWGGVB0jhe878t6tUvtYeB8/iudISI9tKHdsfSRMMxFKOIwg9XvC
+            blackbox: ${BLACKBOX_PASSWORD_HASH}
           EOF
 
       - name: Check if blackbox-exporter container is already running delete if exists
