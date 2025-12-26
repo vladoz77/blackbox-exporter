@@ -54,14 +54,7 @@ jobs:
               mv blackbox.crt blackbox.key ${CERTS_DIR}/
           fi
 
-      - name: Generate HASH for blackbox password
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y apache2-utils
-
-          echo "Generate password hash"
-          BLACKBOX_PASSWORD_HASH=$(echo ${{ secrets.blackbox_password }} | htpasswd -nBiC 10 blackbox | cut -d: -f2)
-      
+   
       - name: Create config for blackbox exporter
         run: |
           echo "Creating blackbox-exporter configuration file..."
@@ -83,7 +76,7 @@ jobs:
 
       - name: Create blackbox web configuration with TLS
         env:
-          BLACKBOX_PASSWORD: ${{ secrets.blackbox_password }}
+          BLACKBOX_PASSWORD: ${{ secrets.BLACKBOX_PASSWORD}}
         run: |
           echo "Generate password hash"
           sudo apt-get update
